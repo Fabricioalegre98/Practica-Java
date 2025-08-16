@@ -1,5 +1,5 @@
 //mi primer programa en Java
-public class Programa
+public class animal
 {
     String nombre;
     int edad;
@@ -14,8 +14,12 @@ public class Programa
                         System.out.println("miau");
                     }
     }
+    public void mostrarDatos()
+    {
     System.out.println("Nombre: "+this.nombre);
     System.out.println("Especie: "+this.especie);
     System.out.println("Edad: "+this.edad);
-    System.out.println("Me llamo: "+this.nombre +"soy un: "+this.especie +"y tengo: "+this.edad +" años");
+    System.out.println("Me llamo: "+this.nombre +" soy un: "+this.especie +" y tengo: "+this.edad +" años");
+}
+
 }
