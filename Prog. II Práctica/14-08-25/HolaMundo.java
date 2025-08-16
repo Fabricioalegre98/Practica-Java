@@ -4,7 +4,7 @@ public class HolaMundo {
         Scanner Scan=new Scanner (System.in);
         System.out.println("como te llamas?");
         String nombre=Scan.nextLine();
-        System.out.println("Hola"+ nombre);
+        System.out.println("Hola " + nombre);
 
         Scan.close();
     }
