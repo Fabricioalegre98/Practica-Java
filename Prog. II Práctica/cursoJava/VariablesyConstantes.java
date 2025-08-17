@@ -9,6 +9,6 @@ public class VariablesyConstantes {
 
         //constantes
         final int CONSTANTE_NUMERO = 100; // Declaración e incialización de una constante entera
-        
+
     }
 }
