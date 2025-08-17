@@ -1,11 +1,9 @@
 //mi primer programa en Java
-public class animal
-{
+public class animal {
     String nombre;
-    int edad;
+     int edad;
     String especie; //"perro", "gato".
-    public void habla() 
-    {
+     public void habla() {
         if (this.especie.equals("perro"))
             {
             System.out.println("guau");
@@ -14,12 +12,11 @@ public class animal
                         System.out.println("miau");
                     }
     }
-    public void mostrarDatos()
-    {
-    System.out.println("Nombre: "+this.nombre);
-    System.out.println("Especie: "+this.especie);
-    System.out.println("Edad: "+this.edad);
-    System.out.println("Me llamo: "+this.nombre +" soy un: "+this.especie +" y tengo: "+this.edad +" años");
-}
 
+    public void mostrarDatos() {
+     System.out.println("Nombre: "+this.nombre);
+     System.out.println("Especie: "+this.especie);
+     System.out.println("Edad: "+this.edad);
+     System.out.println("Me llamo: "+this.nombre +" soy un: "+this.especie +" y tengo: "+this.edad +" años");
+}
 }
