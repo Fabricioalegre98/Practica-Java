@@ -11,7 +11,7 @@ public class VariablesyConstantes {
         var email="fabrialegre982838@gmail.com"; //Declaración de variable tipo var
         System.out.println("email: "+email); //Impresión de la variable email
 
-        
+
         //constantes
         final int CONSTANTE_NUMERO = 100; // Declaración e inicialización de una constante entera
 
