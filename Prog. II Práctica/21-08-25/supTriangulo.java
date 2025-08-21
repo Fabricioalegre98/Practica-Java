@@ -12,9 +12,12 @@ public class supTriangulo {
 
         // Ejemplo de suma de dos números
 
-
         System.out.println(A+B);
         A = A + B; // Suma de A y B
-
     }
 }
+
+//pedrile al usuario que ingrese 2 valores numericos y
+// que se pueda hacer una operacion... si A es mayor que B entonces a A
+// se le asigna A*B, si A es menor que ve es B/A y si son iguales se suman y el
+// resultado se guarda en la variable A
