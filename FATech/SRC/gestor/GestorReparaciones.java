@@ -1,335 +1,437 @@
 package gestor;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.table.*;
+import javax.swing.text.MaskFormatter;
 import java.awt.*;
 import java.awt.event.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.List;
+import java.util.*;
 
 public class GestorReparaciones extends JFrame {
+
+    // Modelo de datos
+    private final List<Reparacion> listaReparaciones = new ArrayList<>();
+    private boolean datosModificados = false;
+
+    // Componentes UI
     private DefaultTableModel modeloTabla;
     private JTable tabla;
-    private JTextField campoCliente, campoEquipo, campoFalla, campoFecha;
+    private JTextField campoCliente, campoEquipo, campoFalla;
+    private JFormattedTextField campoFecha;
     private JComboBox<String> comboEstado;
-    private SimpleDateFormat formatoFecha = new SimpleDateFormat("dd/MM/yyyy");
+    private JTextField campoBusquedaCliente;
+    private JComboBox<String> comboBusquedaEstado;
+
+    private final SimpleDateFormat formatoFecha = new SimpleDateFormat("dd/MM/yyyy");
+
+    // Estados predefinidos
+    private static final String[] ESTADOS = {"Pendiente", "En Proceso", "Completado", "Cancelado"};
 
     public GestorReparaciones() {
+        formatoFecha.setLenient(false);
         initComponents();
         configurarVentana();
-        configurarEventos();
+        actualizarTabla();
     }
 
     private void initComponents() {
-        // Configurar formato de fecha
-        formatoFecha.setLenient(false);
+        // Panel formulario con GroupLayout para mejor diseño
+        JPanel panelFormulario = new JPanel();
+        panelFormulario.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(),
+                "Datos de la Reparación", TitledBorder.LEFT, TitledBorder.TOP));
 
-        // Modelo de la tabla
-        modeloTabla = new DefaultTableModel(
-                new Object[]{"Cliente", "Equipo", "Falla", "Estado", "Fecha"}, 0) {
+        JLabel lblCliente = new JLabel("Cliente:");
+        JLabel lblEquipo = new JLabel("Equipo:");
+        JLabel lblFalla = new JLabel("Falla:");
+        JLabel lblEstado = new JLabel("Estado:");
+        JLabel lblFecha = new JLabel("Fecha (dd/MM/yyyy):");
+
+        campoCliente = new JTextField(20);
+        campoEquipo = new JTextField(20);
+        campoFalla = new JTextField(20);
+
+        try {
+            MaskFormatter mask = new MaskFormatter("##/##/####");
+            mask.setPlaceholderCharacter('_');
+            campoFecha = new JFormattedTextField(mask);
+            campoFecha.setColumns(10);
+        } catch (ParseException e) {
+            campoFecha = new JFormattedTextField();
+            campoFecha.setColumns(10);
+        }
+
+        comboEstado = new JComboBox<>(ESTADOS);
+
+        GroupLayout layout = new GroupLayout(panelFormulario);
+        panelFormulario.setLayout(layout);
+        layout.setAutoCreateGaps(true);
+        layout.setAutoCreateContainerGaps(true);
+
+        layout.setHorizontalGroup(layout.createSequentialGroup()
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.TRAILING)
+                        .addComponent(lblCliente)
+                        .addComponent(lblEquipo)
+                        .addComponent(lblFalla)
+                        .addComponent(lblEstado)
+                        .addComponent(lblFecha))
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addComponent(campoCliente)
+                        .addComponent(campoEquipo)
+                        .addComponent(campoFalla)
+                        .addComponent(comboEstado)
+                        .addComponent(campoFecha))
+        );
+
+        layout.setVerticalGroup(layout.createSequentialGroup()
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                        .addComponent(lblCliente)
+                        .addComponent(campoCliente))
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                        .addComponent(lblEquipo)
+                        .addComponent(campoEquipo))
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                        .addComponent(lblFalla)
+                        .addComponent(campoFalla))
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                        .addComponent(lblEstado)
+                        .addComponent(comboEstado))
+                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                        .addComponent(lblFecha)
+                        .addComponent(campoFecha))
+        );
+
+        // Tabla y modelo
+        modeloTabla = new DefaultTableModel(new Object[]{"Cliente", "Equipo", "Falla", "Estado", "Fecha"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Hacer tabla no editable directamente
+                return false; // No editable directamente
             }
         };
-
         tabla = new JTable(modeloTabla);
         tabla.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         tabla.getTableHeader().setReorderingAllowed(false);
+        tabla.setAutoCreateRowSorter(true); // Permite ordenar columnas
+
         JScrollPane scrollTabla = new JScrollPane(tabla);
-        scrollTabla.setPreferredSize(new Dimension(750, 200));
+        scrollTabla.setPreferredSize(new Dimension(800, 250));
 
-        // Panel de formulario
-        JPanel panelFormulario = new JPanel(new GridLayout(2, 5, 10, 10));
-        panelFormulario.setBorder(BorderFactory.createTitledBorder("Datos de la Reparación"));
-
-        // Campos del formulario
-        campoCliente = new JTextField();
-        campoEquipo = new JTextField();
-        campoFalla = new JTextField();
-        campoFecha = new JTextField();
-
-        // ComboBox para estados predefinidos
-        String[] estados = {"Pendiente", "En Proceso", "Completado", "Cancelado"};
-        comboEstado = new JComboBox<>(estados);
-
-        // Agregar labels y campos al formulario
-        panelFormulario.add(new JLabel("Cliente:"));
-        panelFormulario.add(new JLabel("Equipo:"));
-        panelFormulario.add(new JLabel("Falla:"));
-        panelFormulario.add(new JLabel("Estado:"));
-        panelFormulario.add(new JLabel("Fecha (dd/MM/yyyy):"));
-
-        panelFormulario.add(campoCliente);
-        panelFormulario.add(campoEquipo);
-        panelFormulario.add(campoFalla);
-        panelFormulario.add(comboEstado);
-        panelFormulario.add(campoFecha);
-
-        // Botones
+        // Panel botones
         JButton btnAgregar = new JButton("Agregar");
         JButton btnEditar = new JButton("Editar");
         JButton btnEliminar = new JButton("Eliminar");
         JButton btnLimpiar = new JButton("Limpiar");
 
-        btnAgregar.setBackground(new Color(76, 175, 80));
-        btnAgregar.setForeground(Color.WHITE);
-        btnEditar.setBackground(new Color(33, 150, 243));
-        btnEditar.setForeground(Color.WHITE);
-        btnEliminar.setBackground(new Color(244, 67, 54));
-        btnEliminar.setForeground(Color.WHITE);
+        // Atajos de teclado
+        btnAgregar.setMnemonic(KeyEvent.VK_A);
+        btnEditar.setMnemonic(KeyEvent.VK_E);
+        btnEliminar.setMnemonic(KeyEvent.VK_D);
+        btnLimpiar.setMnemonic(KeyEvent.VK_L);
 
-        JPanel panelBotones = new JPanel(new FlowLayout());
+        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
         panelBotones.add(btnAgregar);
         panelBotones.add(btnEditar);
         panelBotones.add(btnEliminar);
         panelBotones.add(btnLimpiar);
 
+        // Panel búsqueda
+        JPanel panelBusqueda = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        panelBusqueda.setBorder(BorderFactory.createTitledBorder("Buscar / Filtrar"));
+
+        panelBusqueda.add(new JLabel("Cliente:"));
+        campoBusquedaCliente = new JTextField(15);
+        panelBusqueda.add(campoBusquedaCliente);
+
+        panelBusqueda.add(new JLabel("Estado:"));
+        String[] estadosBusqueda = new String[ESTADOS.length + 1];
+        estadosBusqueda[0] = "Todos";
+        System.arraycopy(ESTADOS, 0, estadosBusqueda, 1, ESTADOS.length);
+        comboBusquedaEstado = new JComboBox<>(estadosBusqueda);
+        panelBusqueda.add(comboBusquedaEstado);
+
         // Layout principal
         setLayout(new BorderLayout(10, 10));
         add(panelFormulario, BorderLayout.NORTH);
-        add(scrollTabla, BorderLayout.CENTER);
-        add(panelBotones, BorderLayout.SOUTH);
+        add(panelBusqueda, BorderLayout.CENTER);
+        add(scrollTabla, BorderLayout.SOUTH);
+        add(panelBotones, BorderLayout.PAGE_END);
 
-        // Configurar eventos de botones
+        // Eventos botones
         btnAgregar.addActionListener(e -> agregarReparacion());
         btnEditar.addActionListener(e -> editarReparacion());
         btnEliminar.addActionListener(e -> eliminarReparacion());
-        btnLimpiar.addActionListener(e -> limpiarCampos());
-    }
+        btnLimpiar.addActionListener(e -> limpiarCamposConConfirmacion());
 
-    private void configurarVentana() {
-        setTitle("Gestor de Reparaciones - v2.0");
-        setSize(900, 500);
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
-
-        // Confirmar antes de cerrar
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                int opcion = JOptionPane.showConfirmDialog(
-                        GestorReparaciones.this,
-                        "¿Está seguro que desea salir?\nLos datos no guardados se perderán.",
-                        "Confirmar salida",
-                        JOptionPane.YES_NO_OPTION,
-                        JOptionPane.QUESTION_MESSAGE
-                );
-                if (opcion == JOptionPane.YES_OPTION) {
-                    dispose();
-                }
-            }
-        });
-    }
-
-    private void configurarEventos() {
-        // Al seleccionar una fila, cargar los datos en el formulario
+        // Evento selección tabla para cargar datos
         tabla.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 cargarDatosEnFormulario();
             }
         });
 
-        // Agregar con Enter en los campos
-        ActionListener agregarConEnter = e -> agregarReparacion();
-        campoCliente.addActionListener(agregarConEnter);
-        campoEquipo.addActionListener(agregarConEnter);
-        campoFalla.addActionListener(agregarConEnter);
-        campoFecha.addActionListener(agregarConEnter);
+        // Evento para marcar datos modificados
+        DocumentListener docListener = new DocumentListener() {
+            public void changedUpdate(DocumentEvent e) {
+                datosModificados = true;
+            }
+
+            public void removeUpdate(DocumentEvent e) {
+                datosModificados = true;
+            }
+
+            public void insertUpdate(DocumentEvent e) {
+                datosModificados = true;
+            }
+        };
+        campoCliente.getDocument().addDocumentListener(docListener);
+        campoEquipo.getDocument().addDocumentListener(docListener);
+        campoFalla.getDocument().addDocumentListener(docListener);
+        campoFecha.getDocument().addDocumentListener(docListener);
+
+        comboEstado.addActionListener(e -> datosModificados = true);
+
+        // Eventos búsqueda para filtrar tabla
+        campoBusquedaCliente.getDocument().addDocumentListener(new DocumentListener() {
+            public void changedUpdate(DocumentEvent e) {
+                filtrarTabla();
+            }
+
+            public void removeUpdate(DocumentEvent e) {
+                filtrarTabla();
+            }
+
+            public void insertUpdate(DocumentEvent e) {
+                filtrarTabla();
+            }
+        });
+        comboBusquedaEstado.addActionListener(e -> filtrarTabla());
+
+        // Confirmar salida si hay cambios
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                salirConConfirmacion();
+            }
+        });
+    }
+
+    private void configurarVentana() {
+        setTitle("Gestor de Reparaciones - v3.0 Mejorado");
+        setSize(850, 600);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
     }
 
     private void agregarReparacion() {
-        if (!validarCampos()) {
-            return;
-        }
+        if (!validarCampos()) return;
 
-        try {
-            modeloTabla.addRow(new Object[]{
-                    campoCliente.getText().trim(),
-                    campoEquipo.getText().trim(),
-                    campoFalla.getText().trim(),
-                    comboEstado.getSelectedItem().toString(),
-                    campoFecha.getText().trim()
-            });
+        Reparacion rep = new Reparacion(
+                campoCliente.getText().trim(),
+                campoEquipo.getText().trim(),
+                campoFalla.getText().trim(),
+                Objects.requireNonNull(comboEstado.getSelectedItem()).toString(),
+                parseFecha(campoFecha.getText().trim())
+        );
 
-            limpiarCampos();
-            JOptionPane.showMessageDialog(this,
-                    "Reparación agregada correctamente",
-                    "Éxito",
-                    JOptionPane.INFORMATION_MESSAGE);
-
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al agregar la reparación: " + ex.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
+        listaReparaciones.add(rep);
+        datosModificados = true;
+        actualizarTabla();
+        limpiarCampos();
+        JOptionPane.showMessageDialog(this, "Reparación agregada correctamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void editarReparacion() {
         int fila = tabla.getSelectedRow();
         if (fila < 0) {
-            JOptionPane.showMessageDialog(this,
-                    "Seleccione una fila para editar",
-                    "Advertencia",
-                    JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Seleccione una fila para editar", "Advertencia", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        if (!validarCampos()) {
-            return;
-        }
+        if (!validarCampos()) return;
 
-        try {
-            modeloTabla.setValueAt(campoCliente.getText().trim(), fila, 0);
-            modeloTabla.setValueAt(campoEquipo.getText().trim(), fila, 1);
-            modeloTabla.setValueAt(campoFalla.getText().trim(), fila, 2);
-            modeloTabla.setValueAt(comboEstado.getSelectedItem().toString(), fila, 3);
-            modeloTabla.setValueAt(campoFecha.getText().trim(), fila, 4);
+        // Obtener índice real con sorter
+        fila = tabla.convertRowIndexToModel(fila);
 
-            JOptionPane.showMessageDialog(this,
-                    "Reparación actualizada correctamente",
-                    "Éxito",
-                    JOptionPane.INFORMATION_MESSAGE);
+        Reparacion rep = listaReparaciones.get(fila);
+        rep.setCliente(campoCliente.getText().trim());
+        rep.setEquipo(campoEquipo.getText().trim());
+        rep.setFalla(campoFalla.getText().trim());
+        rep.setEstado(Objects.requireNonNull(comboEstado.getSelectedItem()).toString());
+        rep.setFecha(parseFecha(campoFecha.getText().trim()));
 
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al editar la reparación: " + ex.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
+        datosModificados = true;
+        actualizarTabla();
+        JOptionPane.showMessageDialog(this, "Reparación actualizada correctamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void eliminarReparacion() {
         int fila = tabla.getSelectedRow();
         if (fila < 0) {
-            JOptionPane.showMessageDialog(this,
-                    "Seleccione una fila para eliminar",
-                    "Advertencia",
-                    JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Seleccione una fila para eliminar", "Advertencia", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        String cliente = getValueSafe(fila, 0);
+        fila = tabla.convertRowIndexToModel(fila);
+        Reparacion rep = listaReparaciones.get(fila);
+
         int confirmacion = JOptionPane.showConfirmDialog(this,
-                "¿Está seguro que desea eliminar la reparación de: " + cliente + "?",
+                "¿Está seguro que desea eliminar la reparación de: " + rep.getCliente() + "?",
                 "Confirmar eliminación",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.QUESTION_MESSAGE);
 
         if (confirmacion == JOptionPane.YES_OPTION) {
-            try {
-                modeloTabla.removeRow(fila);
-                limpiarCampos();
-                JOptionPane.showMessageDialog(this,
-                        "Reparación eliminada correctamente",
-                        "Éxito",
-                        JOptionPane.INFORMATION_MESSAGE);
+            listaReparaciones.remove(fila);
+            datosModificados = true;
+            actualizarTabla();
+            limpiarCampos();
+            JOptionPane.showMessageDialog(this, "Reparación eliminada correctamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
 
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this,
-                        "Error al eliminar la reparación: " + ex.getMessage(),
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
+    private void limpiarCamposConConfirmacion() {
+        if (tieneDatosIngresados()) {
+            int opcion = JOptionPane.showConfirmDialog(this,
+                    "Hay datos ingresados en el formulario. ¿Desea limpiar los campos?",
+                    "Confirmar limpieza",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE);
+            if (opcion != JOptionPane.YES_OPTION) {
+                return;
             }
         }
+        limpiarCampos();
     }
 
-    private void cargarDatosEnFormulario() {
-        int fila = tabla.getSelectedRow();
-        if (fila >= 0) {
-            try {
-                campoCliente.setText(getValueSafe(fila, 0));
-                campoEquipo.setText(getValueSafe(fila, 1));
-                campoFalla.setText(getValueSafe(fila, 2));
-                comboEstado.setSelectedItem(getValueSafe(fila, 3));
-                campoFecha.setText(getValueSafe(fila, 4));
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this,
-                        "Error al cargar los datos: " + ex.getMessage(),
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
-            }
-        }
-    }
-
-    private String getValueSafe(int fila, int columna) {
-        Object valor = modeloTabla.getValueAt(fila, columna);
-        return valor != null ? valor.toString() : "";
-    }
-
-    private boolean validarCampos() {
-        // Validar cliente
-        if (campoCliente.getText().trim().isEmpty()) {
-            mostrarError("El campo Cliente es obligatorio", campoCliente);
-            return false;
-        }
-
-        // Validar equipo
-        if (campoEquipo.getText().trim().isEmpty()) {
-            mostrarError("El campo Equipo es obligatorio", campoEquipo);
-            return false;
-        }
-
-        // Validar falla
-        if (campoFalla.getText().trim().isEmpty()) {
-            mostrarError("El campo Falla es obligatorio", campoFalla);
-            return false;
-        }
-
-        // Validar fecha
-        String fecha = campoFecha.getText().trim();
-        if (fecha.isEmpty()) {
-            mostrarError("El campo Fecha es obligatorio", campoFecha);
-            return false;
-        }
-
-        try {
-            formatoFecha.parse(fecha);
-        } catch (ParseException e) {
-            mostrarError("Formato de fecha inválido. Use dd/MM/yyyy (ejemplo: 25/12/2023)", campoFecha);
-            return false;
-        }
-
-        // Validar longitud de campos
-        if (campoCliente.getText().trim().length() > 50) {
-            mostrarError("El nombre del cliente no puede exceder 50 caracteres", campoCliente);
-            return false;
-        }
-
-        if (campoEquipo.getText().trim().length() > 50) {
-            mostrarError("El nombre del equipo no puede exceder 50 caracteres", campoEquipo);
-            return false;
-        }
-
-        return true;
-    }
-
-    private void mostrarError(String mensaje, JTextField campo) {
-        JOptionPane.showMessageDialog(this, mensaje, "Error de validación", JOptionPane.ERROR_MESSAGE);
-        campo.requestFocus();
-        campo.selectAll();
+    private boolean tieneDatosIngresados() {
+        return !campoCliente.getText().trim().isEmpty() ||
+                !campoEquipo.getText().trim().isEmpty() ||
+                !campoFalla.getText().trim().isEmpty() ||
+                !campoFecha.getText().trim().isEmpty() ||
+                comboEstado.getSelectedIndex() != 0;
     }
 
     private void limpiarCampos() {
         campoCliente.setText("");
         campoEquipo.setText("");
         campoFalla.setText("");
-        campoFecha.setText("");
+        campoFecha.setValue(null);
         comboEstado.setSelectedIndex(0);
-        campoCliente.requestFocus();
         tabla.clearSelection();
+        campoCliente.requestFocus();
     }
 
-    // Método para cargar datos de ejemplo (opcional)
-    public void cargarDatosEjemplo() {
-        modeloTabla.addRow(new Object[]{"Juan Pérez", "Laptop HP", "No enciende", "Pendiente", "15/09/2024"});
-        modeloTabla.addRow(new Object[]{"María García", "iPhone 12", "Pantalla rota", "En Proceso", "14/09/2024"});
-        modeloTabla.addRow(new Object[]{"Carlos López", "PC Desktop", "Virus", "Completado", "13/09/2024"});
+    private void cargarDatosEnFormulario() {
+        int fila = tabla.getSelectedRow();
+        if (fila >= 0) {
+            fila = tabla.convertRowIndexToModel(fila);
+            Reparacion rep = listaReparaciones.get(fila);
+            campoCliente.setText(rep.getCliente());
+            campoEquipo.setText(rep.getEquipo());
+            campoFalla.setText(rep.getFalla());
+            comboEstado.setSelectedItem(rep.getEstado());
+            campoFecha.setText(formatoFecha.format(rep.getFecha()));
+        }
     }
 
-    public void mostrarVentana() {
-        setVisible(true);
+    private boolean validarCampos() {
+        if (campoCliente.getText().trim().isEmpty()) {
+            mostrarError("El campo Cliente es obligatorio", campoCliente);
+            return false;
+        }
+        if (campoCliente.getText().trim().length() > 50) {
+            mostrarError("El nombre del cliente no puede exceder 50 caracteres", campoCliente);
+            return false;
+        }
+        if (campoEquipo.getText().trim().isEmpty()) {
+            mostrarError("El campo Equipo es obligatorio", campoEquipo);
+            return false;
+        }
+        if (campoEquipo.getText().trim().length() > 50) {
+            mostrarError("El nombre del equipo no puede exceder 50 caracteres", campoEquipo);
+            return false;
+        }
+        if (campoFalla.getText().trim().isEmpty()) {
+            mostrarError("El campo Falla es obligatorio", campoFalla);
+            return false;
+        }
+        if (campoFecha.getText().trim().isEmpty() || campoFecha.getText().contains("_")) {
+            mostrarError("El campo Fecha es obligatorio y debe estar completo", campoFecha);
+            return false;
+        }
+        try {
+            formatoFecha.parse(campoFecha.getText().trim());
+        } catch (ParseException e) {
+            mostrarError("Formato de fecha inválido. Use dd/MM/yyyy (ejemplo: 25/12/2023)", campoFecha);
+            return false;
+        }
+        return true;
+    }
+
+    private void mostrarError(String mensaje, JComponent campo) {
+        JOptionPane.showMessageDialog(this, mensaje, "Error de validación", JOptionPane.ERROR_MESSAGE);
+        campo.requestFocus();
+        if (campo instanceof JTextField) {
+            ((JTextField) campo).selectAll();
+        }
+    }
+
+    private Date parseFecha(String texto) {
+        try {
+            return formatoFecha.parse(texto);
+        } catch (ParseException e) {
+            return new Date();
+        }
+    }
+
+    private void actualizarTabla() {
+        modeloTabla.setRowCount(0);
+        for (Reparacion rep : listaReparaciones) {
+            modeloTabla.addRow(new Object[]{
+                    rep.getCliente(),
+                    rep.getEquipo(),
+                    rep.getFalla(),
+                    rep.getEstado(),
+                    formatoFecha.format(rep.getFecha())
+            });
+        }
+        filtrarTabla();
+    }
+
+    private void filtrarTabla() {
+        String filtroCliente = campoBusquedaCliente.getText().trim().toLowerCase();
+        String filtroEstado = Objects.requireNonNull(comboBusquedaEstado.getSelectedItem()).toString();
+
+        TableRowSorter<DefaultTableModel> sorter = (TableRowSorter<DefaultTableModel>) tabla.getRowSorter();
+
+        RowFilter<DefaultTableModel, Object> rf = new RowFilter<>() {
+            public boolean include(Entry<? extends DefaultTableModel, ? extends Object> entry) {
+                String cliente = entry.getStringValue(0).toLowerCase();
+                String estado = entry.getStringValue(3);
+                boolean clienteMatch = cliente.contains(filtroCliente);
+                boolean estadoMatch = filtroEstado.equals("Todos") || estado.equals(filtroEstado);
+                return clienteMatch && estadoMatch;
+            }
+        };
+        sorter.setRowFilter(rf);
+    }
+
+    private void salirConConfirmacion() {
+        if (datosModificados) {
+            int opcion = JOptionPane.showConfirmDialog(this,
+                    "Hay cambios no guardados. ¿Desea salir de todos modos?",
+                    "Confirmar salida",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE);
+            if (opcion == JOptionPane.NO_OPTION) {
+                return;
+            }
+        }
+        dispose();
     }
 }
